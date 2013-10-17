@@ -35,13 +35,13 @@ var __appRoot = {
 };
 $(function(){
 	var __setController = function($parent){
-		var $ngControlEls = $($parent).find('[data-controller]');
-		$ngControlEls.each(function(idx, el){
-			var $ngCtrler = $(this);
-			var ctrlName = $ngCtrler.attr('data-controller');
+		var $controlEls = $($parent).find('[data-controller]');
+		$controlEls.each(function(idx, el){
+			var $ctrler = $(this);
+			var ctrlName = $ctrler.attr('data-controller');
 			
 			$parent.$controllers = $parent.$controllers || {};
-			$this = $parent.$controllers[ctrlName] = $ngCtrler;
+			$this = $parent.$controllers[ctrlName] = $ctrler;
 			
 			$this.__$models = {};
 			$this.__$scope = {};
@@ -59,20 +59,20 @@ $(function(){
 	}
 	
 	var __setModels = function($parent){
-		var $ngModels = $($parent).find('[data-model]');
-		$ngModels.each(function(idx, el) {
-			var $ngModel = $(this);
-			var mdlName = $ngModel.attr('data-model');
-			$parent.__$models[mdlName] = $ngModel;
+		var $models = $($parent).find('[data-model]');
+		$models.each(function(idx, el) {
+			var $model = $(this);
+			var mdlName = $model.attr('data-model');
+			$parent.__$models[mdlName] = $model;
 			// 모델 타입별 분기
 			if ($parent.__$scope[mdlName]) {
-				$ngModel.val($parent.__$scope[mdlName]);
+				$model.val($parent.__$scope[mdlName]);
 			} else {
-				$parent.__$scope[mdlName] = $ngModel.val();
+				$parent.__$scope[mdlName] = $model.val();
 			}
-			// ngModel 이벤트 등록
+			// model 이벤트 등록
 			var handlerKey = __getKeyHandler($parent, mdlName);
-			$ngModel.on("keyup", handlerKey);
+			$model.on("keyup", handlerKey);
 			__renderByModel($parent, mdlName);
 			// /모델 타이별 분기
 		});
@@ -102,10 +102,10 @@ $(function(){
 	var __init = function() {
 		console.log("### This is the APP!!!");
 		$('html').hide();
-		// ngApp
-		$this = __appRoot.$app = __appRoot.$ngAppEl = $('[data-app]');
-		// ngApp 복사본
-		__appRoot.$ngAppCopyEl = __appRoot.$app.clone();
+		// app
+		$this = __appRoot.$app = __appRoot.$appEl = $('[data-app]');
+		// app 복사본
+		__appRoot.$appCopyEl = $this.clone();
 		if ($($this).find('[data-controller]').length) {
 			__appRoot.hasController = true;
 			__setController(__appRoot.$app);
