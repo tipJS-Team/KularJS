@@ -3,23 +3,41 @@
 <head>
 	<meta charset="utf-8">
 	<title>테스트</title>
-	<script src="jquery.js"></script>
-	<script src="Kular.js"></script>
-	<script src="myscript.js"></script>
+<script src="jquery.js"></script>
+<script src="Kular.js"></script>
+<script src="myscript.js"></script>
+
 </head>
 <body>
 	<h1>Test</h1>
-	<div data-controller="ctrl1">
+	<div data-controller="ctrl7">
 		<p>name1 : <input type="text" name="name" data-model="name1"></p>
-		<div data-controller="ctrl2">
-			<p>name21 : <input type="text" name="name" data-model="name21"></p>
-			<p>name22 : <input type="text" name="name" data-model="name22"></p>
-			<p>name23 : <textarea name="name" data-model="name23"></textarea></p>
-			<p><span>Hello {{name21}} {{name22}}<em>!!</em></span></p>
+		<div data-controller="ctrl1">
+			<div data-controller="ctrl2">
+				<p>name21 : <input type="text" name="name" data-model="name21"></p>
+				<p>name22 : <input type="text" data-user="{{name21}}" name="name" data-model="name22"></p>
+				<p>name23 : <textarea name="name" data-model="name23"></textarea></p>
+				<p><span>Hello {{name21}} {{name22}}<em>!!</em></span></p>
+			</div>
+			
+		</div>
+		<div data-controller="ctrl3">
 		</div>
 		<p><span>Hello {{name1}}<em>!!</em></span></p>
 	</div>
+	<div data-controller="ctrl4">
+	</div>
 textNode
+<script>
+var modelsNode = $('[data-controller="ctrl7"]').find('*').contents().each(function(idx, el){
+	if (this.nodeType === 3) return;
+	$.each(this.attributes, function(){
+		console.dir(this.value);
+	});
+	
+});
+console.dir(modelsNode);
+</script>
 </body>
 </html>
 

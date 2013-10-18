@@ -34,35 +34,44 @@ var __appRoot = {
 	$app:{}
 };
 $(function(){
+
+	/*
+	 * __setController
+	 */
 	var __setController = function($parent){
 		var $controlEls = $($parent).find('[data-controller]');
 		$controlEls.each(function(idx, el){
-			var $ctrler = $(this);
-			var ctrlName = $ctrler.attr('data-controller');
+			var $this = $(this);
+			var ctrlName = $this.attr('data-controller');
+			__appRoot.$app.$controllers[ctrlName] = $this;
 			
-			$parent.$controllers = $parent.$controllers || {};
-			$this = $parent.$controllers[ctrlName] = $ctrler;
-			
-			$this.__$models = {};
-			$this.__$scope = {};
+			// 자신보다 최상위 컨트롤러를 지정
+			$this.__$parent = __appRoot.$app.$controllers[$($this).parents('[data-controller]:last').attr('data-controller')];
+			$this.__$models = $this.__$parent ? $this.__$parent.__$models : {};
+			$this.__$scope = $this.__$parent ? $this.__$parent.__$scope : {};
 			if(util__.isFunction(window[ctrlName])){
 				window[ctrlName]($this.__$scope);
 			}
 			$this.__tpls = [];
 			// tpls
-			setTpls($this);
+			__setTpls($this);
 			// models
 			__setModels($this);
-			// controllers
-			__setController($this);
 		});
 	}
-	
+
+	/*
+	 * __setModels
+	 */
 	var __setModels = function($parent){
+		//if ($parent.__$parent) return;
 		var $models = $($parent).find('[data-model]');
 		$models.each(function(idx, el) {
 			var $model = $(this);
 			var mdlName = $model.attr('data-model');
+//			$model.attr("*", function(idx, attr){
+//				console.dir(attr);
+//			});
 			$parent.__$models[mdlName] = $model;
 			// 모델 타입별 분기
 			if ($parent.__$scope[mdlName]) {
@@ -77,9 +86,12 @@ $(function(){
 			// /모델 타이별 분기
 		});
 	}
-	
-	var setTpls = function($parent){
-		$parent.__$tplNodes = $($parent).find('*').contents().filter(function() {
+
+	/*
+	 * __setTpls
+	 */
+	var __setTpls = function($parent){
+		$parent.__$tplNodes = $($parent).find('*').contents().filter(function(idx) {
 			return this.nodeType === 3
 					&& this.nodeValue
 					&& this.nodeValue.trim() != ""
@@ -95,7 +107,39 @@ $(function(){
 			//console.log('model : ', model);
 		});
 	}
-	
+
+	var __setRelationNode = function($app){
+		for (c in $app.$controllers){
+			var $ctrl = $app.$controllers[c];
+			if ($ctrl.__$parent) continue;
+			for (mdlName in $ctrl.__$models){
+				var regEx = new RegExp("\{\{"+mdlName+"\}\}", "g");
+				var model = $ctrl.__$models[mdlName];
+				model.__relation = [];
+				$($ctrl).find('*').contents().each(function(idx, el){
+					if (this.nodeType === 3) {
+						if (this.nodeValue.match(regEx)){
+							model.__relation.push(this);
+						}
+					} else {
+						if($(this).attr("data-model") == mdlName) {
+							model.__relation.push(this);
+						} else {
+							var self = this;
+							$.each(self.attributes, function(){
+								if (this.value.match(regEx)){
+									model.__relation.push(self);
+								}
+							});
+						}
+					}
+				});
+			}
+		}
+	}
+
+
+
 	/*
 	 * __init
 	*/
@@ -108,13 +152,15 @@ $(function(){
 		__appRoot.$appCopyEl = $this.clone();
 		if ($($this).find('[data-controller]').length) {
 			__appRoot.hasController = true;
-			__setController(__appRoot.$app);
+			__appRoot.$app.$controllers = {};
+			__setController($this);
+			__setRelationNode($this);
 		} else {
 			$this.__$models = {};
 			$this.__$scope = {};
 			$this.__tpls = [];
 			// tpls
-			setTpls($this);
+			__setTpls($this);
 			// models
 			__setModels($this);
 		}
@@ -122,6 +168,9 @@ $(function(){
 		$('html').show();
 	}
 
+	/*
+	 * __getModelNames
+	 */
 	var __getModelNames = function(str){
 		var ret = [];
 		var sp = str.split("}}");
@@ -134,6 +183,9 @@ $(function(){
 		return ret;
 	}
 
+	/*
+	 * __getModelTplObj
+	 */
 	var __getModelTplObj = function(modelName, obj) {
 		for (var i=obj.__tpls.length; i--;){
 			var opt = obj.__tpls[i];
@@ -144,6 +196,9 @@ $(function(){
 		return;
 	}
 
+	/*
+	 * __getKeyHandler
+	 */
 	var __getKeyHandler = function($curruntApp, mdlName) {
 		return function($e){
 			__onModelChange($curruntApp, mdlName);
@@ -151,6 +206,9 @@ $(function(){
 		};
 	};
 
+	/*
+	 * __onModelChange
+	 */
 	var __onModelChange = function($currentApp, mdlName){
 		// 앱이 존재하지 않으면 종료
 		if (!$currentApp) return;
@@ -159,7 +217,6 @@ $(function(){
 			$currentApp.__$scope[mdlName] = $('[data-model='+mdlName+']').val();
 		}
 		// 하위 컨트롤러가 있으면
-		console.dir($currentApp.$controllers);
 		if ($currentApp.$controllers) {
 			$.each($currentApp.$controllers, function(idx, el){
 				$this = $(this);
@@ -168,6 +225,9 @@ $(function(){
 		}
 	};
 
+	/*
+	 * __renderByModel
+	 */
 	var __renderByModel = function($curruntApp, mdlName){
 		$curruntApp.__$tplNodes.each(function(idx, el){
 			if (!$curruntApp.__tpls[idx].tpl.match(new RegExp("\{\{"+mdlName+"\}\}", "g"))) return;
