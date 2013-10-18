@@ -109,28 +109,37 @@ $(function(){
 	}
 
 	var __setRelationNode = function($app){
-		for (c in $app.$controllers){
-			var $ctrl = $app.$controllers[c];
+		// controller
+		for (ctrlName in $app.$controllers){
+			var $ctrl = $app.$controllers[ctrlName];
 			if ($ctrl.__$parent) continue;
+			// controller > model
 			for (mdlName in $ctrl.__$models){
 				var regEx = new RegExp("\{\{"+mdlName+"\}\}", "g");
 				var model = $ctrl.__$models[mdlName];
 				model.__relation = [];
+				// 최상위 컨트롤러 스코프
 				$($ctrl).find('*').contents().each(function(idx, el){
-					if (this.nodeType === 3) {
-						if (this.nodeValue.match(regEx)){
-							model.__relation.push(this);
+					var node = this;
+					// text node
+					if (node.nodeType === 3) {
+						// match
+						if (node.nodeValue.match(regEx)){
+							model.__relation.push(node);
 						}
 					} else {
-						if($(this).attr("data-model") == mdlName) {
-							model.__relation.push(this);
+						// is data-model
+						if($(node).attr("data-model") == mdlName) {
+							model.__relation.push(node);
 						} else {
-							var self = this;
-							$.each(self.attributes, function(){
-								if (this.value.match(regEx)){
-									model.__relation.push(self);
+							// attr
+							for(var i=node.attributes.length; i--;) {
+								var attr = node.attributes[i];
+								if (attr.value.match(regEx)){
+									model.__relation.push(node);
+									break;
 								}
-							});
+							}
 						}
 					}
 				});
