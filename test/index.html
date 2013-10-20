@@ -18,25 +18,20 @@
 				<p>name22 : <input type="text" data-user="{{name21}}" name="name" data-model="name22"></p>
 				<p>name23 : <textarea name="name" data-model="name23"></textarea></p>
 				<p><span>Hello {{name21}} {{name22}}<em>!!</em></span></p>
+				<div data-loop="list in lists" data-controller="ctrl3">
+					<div class="{{name21}}">{{list}}</div>{{name21}}
+				</div>
 			</div>
 			
 		</div>
-		<div data-controller="ctrl3">
-		</div>
+		
 		<p><span>Hello {{name1}}<em>!!</em></span></p>
 	</div>
 	<div data-controller="ctrl4">
 	</div>
 textNode
 <script>
-var modelsNode = $('[data-controller="ctrl7"]').find('*').contents().each(function(idx, el){
-	if (this.nodeType === 3) return;
-	$.each(this.attributes, function(){
-		console.dir(this.value);
-	});
-	
-});
-console.dir(modelsNode);
+
 </script>
 </body>
 </html>

@@ -49,14 +49,37 @@ $(function(){
 			$this.__$parent = __appRoot.$app.$controllers[$($this).parents('[data-controller]:last').attr('data-controller')];
 			$this.__$models = $this.__$parent ? $this.__$parent.__$models : {};
 			$this.__$scope = $this.__$parent ? $this.__$parent.__$scope : {};
+			$this.__tpls = [];
+			
 			if(util__.isFunction(window[ctrlName])){
 				window[ctrlName]($this.__$scope);
 			}
-			$this.__tpls = [];
+			__makeDomLoop($this);
+			//return;
 			// tpls
 			__setTpls($this);
 			// models
 			__setModels($this);
+			//__renderByModel($this);
+		});
+	}
+
+	var __makeDomLoop = function($app){
+		if ($app.__$parent) return;
+		var $scope = $app.__$scope;
+		$("[data-loop]").each(function(idx, el){
+			//list in lists
+			var $this = $(this);
+			var loopEx = $this.attr("data-loop");
+			var loopExs = loopEx.split("in");
+			if (loopExs.length != 2 || !$scope[loopExs[1].trim()]) return;
+			var loopLen = $scope[loopExs[1].trim()].length;
+			var $child = $this.contents();
+			var $childCopy = $child.clone();
+			$child.remove();
+			for (var i=0; i<loopLen; i++){
+				$this.append($childCopy.clone());
+			}
 		});
 	}
 
@@ -80,9 +103,8 @@ $(function(){
 				$parent.__$scope[mdlName] = $model.val();
 			}
 			// model 이벤트 등록
-			var handlerKey = __getKeyHandler($parent, mdlName);
+			var handlerKey = __getKeyHandler($parent);
 			$model.on("keyup", handlerKey);
-			__renderByModel($parent, mdlName);
 			// /모델 타이별 분기
 		});
 	}
@@ -92,62 +114,53 @@ $(function(){
 	 */
 	var __setTpls = function($parent){
 		$parent.__$tplNodes = $($parent).find('*').contents().filter(function(idx) {
-			return this.nodeType === 3
-					&& this.nodeValue
-					&& this.nodeValue.trim() != ""
-					&& this.nodeValue.indexOf("{{") > -1
-					&& this.nodeValue.indexOf("}}") > 2; //Node.TEXT_NODE
+			if (this.nodeType == 3) {
+				return this.nodeValue
+						&& this.nodeValue.trim() != ""
+						&& this.nodeValue.indexOf("{{") > -1
+						&& this.nodeValue.indexOf("}}") > 2;
+			} else {
+				// is data-model
+				if($(this).attr("data-model")) {
+					return true;
+				} else {
+					// attr
+					for(var i=this.attributes.length; i--;) {
+						var attr = this.attributes[i];
+						if (attr.value
+							&& attr.value.trim() != ""
+							&& attr.value.indexOf("{{") > -1
+							&& attr.value.indexOf("}}") > 2){
+							return true;
+						}
+					} // for
+				}
+				//return false;
+			} // else
 		});
+		
 		$parent.__$tplNodes.each(function(idx, el){
-			var nodeValue = this.nodeValue;
 			var opt = {};
-			opt.tpl = nodeValue;
-			opt.models = __getModelNames(nodeValue);
-			$parent.__tpls.push(opt);
-			//console.log('model : ', model);
-		});
-	}
-
-	var __setRelationNode = function($app){
-		// controller
-		for (ctrlName in $app.$controllers){
-			var $ctrl = $app.$controllers[ctrlName];
-			if ($ctrl.__$parent) continue;
-			// controller > model
-			for (mdlName in $ctrl.__$models){
-				var regEx = new RegExp("\{\{"+mdlName+"\}\}", "g");
-				var model = $ctrl.__$models[mdlName];
-				model.__relation = [];
-				// 최상위 컨트롤러 스코프
-				$($ctrl).find('*').contents().each(function(idx, el){
-					var node = this;
-					// text node
-					if (node.nodeType === 3) {
-						// match
-						if (node.nodeValue.match(regEx)){
-							model.__relation.push(node);
-						}
-					} else {
-						// is data-model
-						if($(node).attr("data-model") == mdlName) {
-							model.__relation.push(node);
-						} else {
-							// attr
-							for(var i=node.attributes.length; i--;) {
-								var attr = node.attributes[i];
-								if (attr.value.match(regEx)){
-									model.__relation.push(node);
-									break;
-								}
-							}
-						}
-					}
-				});
+			if (this.nodeType == 3) {
+				opt.models = __getModelNames(this.nodeValue);
+				$parent.__tpls.push(opt);
+			} else {
+				var valStr = "";
+				// is data-model
+				if($(this).attr("data-model")) {
+					valStr += "{{"+$(this).attr("data-model")+"}}";
+				}
+				// attr
+				for(var i=this.attributes.length; i--;) {
+					var attr = this.attributes[i];
+					valStr += attr.value;
+				} // for
+				opt.models = __getModelNames(valStr);
+				$parent.__tpls.push(opt);
 			}
-		}
+		});
+		$parent.__$tplNodesCopy = $parent.__$tplNodes.clone();
 	}
-
-
 
 	/*
 	 * __init
@@ -156,14 +169,16 @@ $(function(){
 		console.log("### This is the APP!!!");
 		$('html').hide();
 		// app
-		$this = __appRoot.$app = __appRoot.$appEl = $('[data-app]');
+		var $this = __appRoot.$app = __appRoot.$appEl = $('[data-app]');
 		// app 복사본
 		__appRoot.$appCopyEl = $this.clone();
 		if ($($this).find('[data-controller]').length) {
 			__appRoot.hasController = true;
 			__appRoot.$app.$controllers = {};
 			__setController($this);
-			__setRelationNode($this);
+			$.each(__appRoot.$app.$controllers, function(idx, el){
+				__renderByModel(this);
+			});
 		} else {
 			$this.__$models = {};
 			$this.__$scope = {};
@@ -193,25 +208,15 @@ $(function(){
 	}
 
 	/*
-	 * __getModelTplObj
-	 */
-	var __getModelTplObj = function(modelName, obj) {
-		for (var i=obj.__tpls.length; i--;){
-			var opt = obj.__tpls[i];
-			for (var j=opt.models.length; j--;){
-				if (opt.models[j] == modelName) return opt;
-			}
-		}
-		return;
-	}
-
-	/*
 	 * __getKeyHandler
 	 */
-	var __getKeyHandler = function($curruntApp, mdlName) {
+	var __getKeyHandler = function($curruntApp) {
 		return function($e){
-			__onModelChange($curruntApp, mdlName);
-			__renderByModel($curruntApp, mdlName);
+			$.each($curruntApp.__$models, function(idx, el){
+				var mdlName = $(this).attr('data-model');
+				__onModelChange($curruntApp, mdlName);
+			});
+			__renderByModel($curruntApp);
 		};
 	};
 
@@ -225,32 +230,52 @@ $(function(){
 		if ($currentApp.__$scope && $currentApp.__$scope[mdlName]){
 			$currentApp.__$scope[mdlName] = $('[data-model='+mdlName+']').val();
 		}
-		// 하위 컨트롤러가 있으면
-		if ($currentApp.$controllers) {
-			$.each($currentApp.$controllers, function(idx, el){
-				$this = $(this);
-				__onModelChange($this, mdlName);
-			});
-		}
 	};
 
 	/*
 	 * __renderByModel
 	 */
-	var __renderByModel = function($curruntApp, mdlName){
-		$curruntApp.__$tplNodes.each(function(idx, el){
-			if (!$curruntApp.__tpls[idx].tpl.match(new RegExp("\{\{"+mdlName+"\}\}", "g"))) return;
-			var tplObj = __getModelTplObj(mdlName, $curruntApp);
-			if (!tplObj) return;
-			var tpl = tplObj.tpl;
-			for (var i=tplObj.models.length; i--;){
-				var model = tplObj.models[i];
-				var val = $('[data-model='+model+']').val();
-				if (!val) continue;
-				var reg = new RegExp("\{\{"+model+"\}\}", "g");
-				tpl = tpl.replace(reg, val);
+	var __renderByModel = function($curruntApp){
+		if (!$curruntApp.__$parent) return;
+		var $tplNodes = $curruntApp.__$tplNodesCopy;
+		if (!$tplNodes) return;
+		$tplNodes.each(function(idx, el){
+			var node = this;
+			var nodeCopy = $(this).clone()[0];
+			var nodeOrg = $curruntApp.__$tplNodes[idx];
+			var models = $curruntApp.__tpls[idx].models;
+			
+			if (node.nodeType == 3) {
+				nodeOrg.nodeValue = node.nodeValue;
+			} else {
+				// attr
+				for(var j=nodeOrg.attributes.length; j--;) {
+					if (nodeOrg.attributes[j].name == "data-model") continue;
+					nodeOrg.attributes[j].value = node.attributes[j].value;
+				}
 			}
-			this.nodeValue = tpl;
+			
+			for (var i=models.length; i--;){
+				var regEx = new RegExp("\{\{"+models[i]+"\}\}", "g");
+				var modelVal = $('[data-model='+models[i]+']').val();
+				console.log(models[i], modelVal);
+				// text node
+				if (nodeOrg.nodeType == 3) {
+					// match
+					if (nodeOrg.nodeValue.match(regEx)){
+						nodeOrg.nodeValue = nodeOrg.nodeValue.replace(regEx, modelVal);
+					}
+				} else {
+					// attr
+					for(var j=nodeOrg.attributes.length; j--;) {
+						if (nodeOrg.attributes[j].name == "data-model") continue;
+						var attr = nodeOrg.attributes[j];
+						if (attr.value.match(regEx)){
+							attr.value = attr.value.replace(regEx, modelVal);
+						}
+					}
+				}
+			}
 		});
 	}
 
