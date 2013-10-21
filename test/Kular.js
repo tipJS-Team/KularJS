@@ -7,6 +7,13 @@
  * HomePage : http://tipjs-team.github.io/KularJS/
  */
 
+
+/*
+ MutationEvent
+ DOMNodeInserted
+ DOMNodeRemoved
+ DOMSubtreeModified
+*/
 if(typeof String.prototype.trim !== 'function') {
 	String.prototype.trim = function() {
 		return this.replace(/^\s+|\s+$/g, '');
