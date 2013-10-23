@@ -94,7 +94,8 @@ $(function(){
 	 * __setModels
 	 */
 	var __setModels = function($parent){
-		//if ($parent.__$parent) return;
+		// 최상위 컨트롤러만 모델을 갖음
+		if (!$parent.__$parent) return;
 		var $models = $($parent).find('[data-model]');
 		$models.each(function(idx, el) {
 			var $model = $(this);
@@ -120,6 +121,8 @@ $(function(){
 	 * __setTpls
 	 */
 	var __setTpls = function($parent){
+		// 최상위 컨트롤러만 처리
+		if ($parent.__$parent) return;
 		$parent.__$tplNodes = $($parent).find('*').contents().filter(function(idx) {
 			if (this.nodeType == 3) {
 				return this.nodeValue
@@ -243,10 +246,11 @@ $(function(){
 	 * __renderByModel
 	 */
 	var __renderByModel = function($curruntApp){
-		if (!$curruntApp.__$parent) return;
+		if ($curruntApp.__$parent) return;
 		var $tplNodes = $curruntApp.__$tplNodesCopy;
 		if (!$tplNodes) return;
 		$tplNodes.each(function(idx, el){
+			console.log(idx);
 			var node = this;
 			var nodeCopy = $(this).clone()[0];
 			var nodeOrg = $curruntApp.__$tplNodes[idx];
