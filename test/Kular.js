@@ -61,13 +61,13 @@ $(function(){
 			if(util__.isFunction(window[ctrlName])){
 				window[ctrlName]($this.__$scope);
 			}
+			// data-loop 처리
 			__makeDomLoop($this);
 			//return;
 			// tpls
 			__setTpls($this);
 			// models
 			__setModels($this);
-			//__renderByModel($this);
 			// set handlers
 			__setHandlers($this);
 		});
