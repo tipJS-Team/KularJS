@@ -68,6 +68,8 @@ $(function(){
 			// models
 			__setModels($this);
 			//__renderByModel($this);
+			// set handlers
+			__setHandlers($this);
 		});
 	}
 
@@ -100,23 +102,30 @@ $(function(){
 		$models.each(function(idx, el) {
 			var $model = $(this);
 			var mdlName = $model.attr('data-model');
-//			$model.attr("*", function(idx, attr){
-//				console.dir(attr);
-//			});
 			$parent.__$models[mdlName] = $model;
-			// 모델 타입별 분기
 			if ($parent.__$scope[mdlName]) {
 				$model.val($parent.__$scope[mdlName]);
 			} else {
 				$parent.__$scope[mdlName] = $model.val();
 			}
-			// model 이벤트 등록
-			var handlerKey = __getKeyHandler($parent);
-			$model.on("keyup", handlerKey);
-			// /모델 타이별 분기
 		});
 	}
 
+	/*
+	 * __setHandlers
+	 */
+	var __setHandlers = function($app){
+		if ($app.__$parent) return;
+		// 모델속성을 가진 아이들에게 이벤트 부여
+		var $models = $($app).find('[data-model]');
+		$models.each(function(idx, el) {
+			var $model = $(this);
+			// model 이벤트 등록
+			// TODO 모델 타이별 이벤트 분기
+			var handlerKey = __getKeyHandler($app);
+			$model.on("keyup", handlerKey);
+		});
+	}
 	/*
 	 * __setTpls
 	 */
@@ -197,6 +206,8 @@ $(function(){
 			__setTpls($this);
 			// models
 			__setModels($this);
+			// setHandlers
+			__setHandlers($this);
 		}
 		console.dir(__appRoot);
 		$('html').show();
@@ -222,6 +233,7 @@ $(function(){
 	 */
 	var __getKeyHandler = function($curruntApp) {
 		return function($e){
+			console.log("key handler");
 			$.each($curruntApp.__$models, function(idx, el){
 				var mdlName = $(this).attr('data-model');
 				__onModelChange($curruntApp, mdlName);
@@ -250,7 +262,6 @@ $(function(){
 		var $tplNodes = $curruntApp.__$tplNodesCopy;
 		if (!$tplNodes) return;
 		$tplNodes.each(function(idx, el){
-			console.log(idx);
 			var node = this;
 			var nodeCopy = $(this).clone()[0];
 			var nodeOrg = $curruntApp.__$tplNodes[idx];
@@ -268,8 +279,7 @@ $(function(){
 			
 			for (var i=models.length; i--;){
 				var regEx = new RegExp("\{\{"+models[i]+"\}\}", "g");
-				var modelVal = $('[data-model='+models[i]+']').val();
-				console.log(models[i], modelVal);
+				var modelVal = $('[data-model='+models[i]+']').val() || $curruntApp.__$scope[models[i]];
 				// text node
 				if (nodeOrg.nodeType == 3) {
 					// match

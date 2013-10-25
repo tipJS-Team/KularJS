@@ -19,5 +19,6 @@ var ctrl7 = function($scope) {
 		"list4",
 		"list5"
 	];
+	$scope.cls = "peku";
 	console.log("########## ctrl7");
 }
