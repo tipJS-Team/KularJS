@@ -246,10 +246,8 @@ $(function(){
 	 * __onModelChange
 	 */
 	var __onModelChange = function($currentApp, mdlName){
-		// 앱이 존재하지 않으면 종료
-		if (!$currentApp) return;
 		// 스코프가 존재하면
-		if ($currentApp.__$scope && $currentApp.__$scope[mdlName]){
+		if ($currentApp.__$scope){
 			$currentApp.__$scope[mdlName] = $('[data-model='+mdlName+']').val();
 		}
 	};
